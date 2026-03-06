@@ -1,0 +1,101 @@
+---
+title: "Conectividade nas Escolas Cearenses"
+output: html_notebook
+---
+
+Este documento apresenta uma análise exploratória de dados e discussões acerca do acesso de estudantes de escolas públicas do Ceará à internet em suas respectivas instituições de ensino. Este trabalho é um requisito para aprovação na disciplina de Fundamentos de Estatística da Universidade de Fortaleza, no âmbito do curso de Inteligência Artificial.
+
+**Autor:** Pedro Florencio de Almeida Neto \| Cientista de Dados
+
+------------------------------------------------------------------------
+
+**Objetivos Gerais:**
+
+-   Avaliar
+
+**Objetivos Específicos:**
+
+-   Realizar análise exploratória de dados
+
+**Perguntas Norteadoras:**
+
+1.  
+
+### 1. Bibliotecas
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+install.packages("readxl")
+install.packages("echarts4r")
+```
+
+```{r include=FALSE}
+library(dplyr)
+library(readxl)
+library(tidyverse)
+library(echarts4r)
+```
+
+### 2. Aquisição dos Dados
+
+Os dados foram baixados de . O script "01-filtra-base-ceara.R" é responsável por
+
+```{r}
+df <- read_excel('data/base_ceara.xlsx')
+head(df)  
+```
+
+### 3. Pré-Processamento dos Dados
+
+```{r}
+
+```
+
+### 4. Análise Exploratória dos Dados 
+
+#### 4.1. Qual o percentual de escolas municipais e estaduais no Estado do Ceará?
+
+```{r}
+# selecao das colunas necessarias
+cols <- c("Escolar_co_entidade", "Escolar_no_entidade", "Escolar_tp_dependencia")
+df_dependencias <- df %>% select(all_of(cols))
+
+# valores absolutos
+df_freq <- as.data.frame(table(df_dependencias$Escolar_tp_dependencia))
+colnames(df_freq) <- c("TP_DEPENDENCIA","QUANTIDADE")
+
+# percentual
+df_freq$PERCENTUAL <- round(df_freq$QUANTIDADE/sum(df_freq$QUANTIDADE), 2)
+```
+
+```{r}
+# visualizacao
+df_freq %>%
+  e_charts(TP_DEPENDENCIA) %>%
+  e_pie(
+    QUANTIDADE,
+    radius = c("45%", "75%"),
+    label = list(
+      show = TRUE,
+      position = "outside",
+      formatter = "{d}%",
+      fontSize = 12,
+      color = "black"
+    )
+  ) %>%
+  e_legend(right = "25%") %>%
+  e_title(
+    text = "Gráfico 01: Dependência Administrativa das Escolas Públicas do Ceará",
+    textStyle = list(
+      color = "black",
+      fontSize = 14
+    )) %>% 
+  e_theme("macarons")
+```
+
+Observa-se uma predominância da quantidade de escolas municipais, isto é, de educação básica no estado do Ceará. Pode-se ressaltar que o número total de instituições não reflete necessariamente um alta taxa de escolarização, necessitando portanto de uma análise do número de matriculados em cada dependência administrativa no Estado.
+
+#### 4.2. Qual o percentual de estudantes com acesso à internet por dependência administrativa?
+
+```{r}
+
+```

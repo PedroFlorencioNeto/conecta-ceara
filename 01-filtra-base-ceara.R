@@ -1,0 +1,1 @@
+# script para aquisicao dos dataset do presente trabalho
