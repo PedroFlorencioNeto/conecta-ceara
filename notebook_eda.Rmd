@@ -40,7 +40,7 @@ library(echarts4r)
 Os dados foram baixados de . O script "01-filtra-base-ceara.R" é responsável por
 
 ```{r}
-df <- read_excel('data/base_ceara.xlsx')
+df <- read_excel('data/processed-data/base_ceara.xlsx')
 head(df)  
 ```
 
@@ -50,7 +50,7 @@ head(df)
 
 ```
 
-### 4. Análise Exploratória dos Dados 
+### 4. Análise Exploratória dos Dados
 
 #### 4.1. Qual o percentual de escolas municipais e estaduais no Estado do Ceará?
 
@@ -94,8 +94,8 @@ df_freq %>%
 
 Observa-se uma predominância da quantidade de escolas municipais, isto é, de educação básica no estado do Ceará. Pode-se ressaltar que o número total de instituições não reflete necessariamente um alta taxa de escolarização, necessitando portanto de uma análise do número de matriculados em cada dependência administrativa no Estado.
 
-#### 4.2. Qual o percentual de estudantes com acesso à internet por dependência administrativa?
+#### 4.2. Qual o percentual de escolas rurais e urbanas no Estado do Ceará?
 
 ```{r}
-
+str(df_ceara)
 ```

@@ -1,2 +1,3 @@
-# conecta-ceara
-Análise de dados da conectividade nas escolas públicas no estado do Ceará
+## Perspectivas da Conectividade nas Escolas do Estado do Ceará
+
+Este repositório apresenta uma análise de dados referente à conectividade
