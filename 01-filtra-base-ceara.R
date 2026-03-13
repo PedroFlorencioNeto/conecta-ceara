@@ -14,7 +14,10 @@ sum(is.na(df$nm_estado)) # 13 instancias ausentes
 
 # analise das linhas com dados ausentes de estado
 df_estado_ausente <- df[is.na(df$nm_estado), ]
-df_estado_ausente <- df_estado_ausente[, c("escolar_no_entidade", "nm_municipio","latitude","longitude")]
+df_estado_ausente <- df_estado_ausente[, c("escolar_no_entidade", 
+                                           "nm_municipio",
+                                           "latitude",
+                                           "longitude")]
 
 View(df_estado_ausente)
 
