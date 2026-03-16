@@ -18,14 +18,6 @@ Este documento apresenta uma análise exploratória de dados e discussões acerc
 -   Descrever o acesso à internet nas instituições de ensino do Estado do Ceará.
 -   Organizar e apresentar indicadores descritivos, por meio de tabelas, gráficos e medidas estatísticas, que permitam a compreensão do cenário da conectividade educacional.
 
-**Perguntas Norteadoras:**
-
-1.  Qual o percentual de escolas municipais, estaduais e federais no Estado do Ceará?
-
-2.  Qual o percentual de escolas rurais e urbanas no Estado?
-
-3.  Qual o panorama das escolas que tem laboratório de informática no Ceará?
-
 ### 1. Bibliotecas
 
 ```{r}
@@ -49,7 +41,7 @@ library(RColorBrewer)
 
 ### 2. Aquisição dos Dados
 
-Os dados foram baixados de . O script "01-filtra-base-ceara.R" é responsável por
+Os dados foram baixados do [Diagnóstico da Conectividade na Educação](https://conectividadenaeducacao.nic.br/#home) (SIMET) e são oriundos do Censo Escolar 2024 (INEP). O script `01-filtra-base-ceara.R` é responsável por filtrar os dados brutos para o estado do Ceará e salvar no diretório `processed_data`*.*
 
 ```{r}
 df <- read_excel('data/processed-data/base_ceara_validada.xlsx')
@@ -59,11 +51,53 @@ head(df)
 
 ### 3. Pré-Processamento dos Dados
 
-#### 3.1. Tratamento de dados ausentes
+#### 3.1. Remoção de variáveis
 
 ```{r}
-# quantidade de codigos de municipio ausentes
-sum(is.na(df$escolar_co_municipio))
+# remocao das 28 ultimas colunas
+df <- df[, 1:(ncol(df) - 28)]
+```
+
+```{r}
+# remocao de colunas especificas
+cols_to_remove <- c('escolar_nu_ano_censo',
+                    'escolar_co_uf',
+                    'escolar_co_distrito',
+                    'comparador_empresas',
+                    'satelite_mec',
+                    'recurso_recebido')
+
+df <- df[, !(names(df) %in% cols_to_remove)]
+```
+
+#### 3.2. Tratamento de dados ausentes
+
+```{r}
+knitr::kable(data.frame('Faltantes' = colSums(is.na(df))))
+```
+
+Não existem campos ausentes nas variáveis desse estudo, portanto não foi necessária a adoção de nenhuma técnica de substituição de dados faltantes.
+
+#### 3.3. Substituição de tipos de variáveis
+
+```{r}
+# verificando se as colunas booleanas possuem mais formas de escrita de 'Sim'e 'Nao'
+
+cols_booleanas <- c('escolar_in_laboratorio_informatica',
+                    'escolar_in_internet',
+                    'escolar_in_internet_alunos',
+                    'escolar_in_internet_aprendizagem')
+
+lapply(df[cols_booleanas], unique)
+```
+
+As colunas booleanas não apresentam valores distintos de `Sim` e `Nao`. Portanto, é seguro realizar a troca para valores binários considerando apenas estas duas `strings`.
+
+```{r}
+# substituindo colunas de 'Sim' e 'Nao' por variavel booleana
+df <- df %>%
+  mutate(across(all_of(cols_booleanas),
+                ~ifelse(. == "Sim", 1, 0)))
 ```
 
 ### 4. Análise Exploratória dos Dados
@@ -114,12 +148,12 @@ Observa-se uma predominância da quantidade de escolas municipais, isto é, de e
 
 ```{r}
 # colunas necessarias
-cols_necessary <- c('escolar_co_entidade',
+cols_loc <- c('escolar_co_entidade',
                     'escolar_co_entidade',
                     'nm_municipio',
                     'escolar_tp_localizacao')
 
-df_localizacao <- df %>% select(all_of(cols_necessary))
+df_localizacao <- df %>% select(all_of(cols_loc))
 
 head(df_localizacao)
 ```
@@ -152,34 +186,9 @@ Adicionando dataframe com os limites do Estado do Ceará
 gdf_ceara <- st_read('data/processed-data/limites_ceara.geojson')
 ```
 
-Selecionando as colunas necessárias
-
-```{r}
-cols_join <- c('escolar_no_entidade',
-               'escolar_co_municipio',
-               'nm_municipio',
-               'escolar_tp_localizacao',
-               'escolar_in_laboratorio_informatica',
-               'escolar_in_internet',
-               'escolar_tp_rede_local',
-               'escolar_tipo_tecnologia',
-               'escolar_in_internet_alunos',
-               'escolar_in_internet_aprendizagem') 
-
-df_filtered <- df %>% select(all_of(cols_join)) 
-
-knitr::kable(head(df_filtered))
-```
-
-```{r}
-# substituindo coluna por variavel booleana
-df_filtered_lab <- df_filtered %>%
-  mutate(escolar_in_laboratorio_informatica = ifelse(escolar_in_laboratorio_informatica == "Sim", 1, 0))
-```
-
 ```{r}
 # agrupando por municipio e somando a quantidade de laboratorios de informatica
-df_filtered_lab <- df_filtered_lab %>%
+df_filtered_lab <- df %>%
   group_by(escolar_co_municipio) %>%
   summarise(
     quantidade_escolas_laboratorios = sum(escolar_in_laboratorio_informatica),
@@ -199,10 +208,10 @@ Adicionando a coluna *geometry* no dataframe *df_filtered*
 # padronizando tipo dos IDs dos municipios
 df_filtered_lab$escolar_co_municipio <- as.character(df_filtered_lab$escolar_co_municipio)
 
-df_join <- gdf_ceara %>% 
+df_join_lab <- gdf_ceara %>% 
   left_join(df_filtered_lab, by = c("codigo_ibge"="escolar_co_municipio"))
 
-dim(df_join)
+dim(df_join_lab)
 ```
 
 **Mapa Coroplético do Percentual de Laboratórios nas Cearenses**
@@ -230,9 +239,9 @@ Onde:
 Para escolha dos valores que limitam cada categoria, adotou-se o método *Jenks-Caspall.*
 
 ```{r}
-Q1 <- quantile(df_join$percentual_laboratorio, probs = 0.25)
-Q2 <- quantile(df_join$percentual_laboratorio, probs = 0.50)
-Q3 <- quantile(df_join$percentual_laboratorio, probs = 0.75)
+Q1 <- quantile(df_join_lab$percentual_laboratorio, probs = 0.25)
+Q2 <- quantile(df_join_lab$percentual_laboratorio, probs = 0.50)
+Q3 <- quantile(df_join_lab$percentual_laboratorio, probs = 0.75)
 
 IQR <- (Q3-Q1)
 
@@ -240,7 +249,7 @@ IQR
 ```
 
 ```{r}
-n = nrow(df_join)
+n = nrow(df_join_lab)
 n
 ```
 
@@ -250,15 +259,15 @@ w
 ```
 
 ```{r}
-min = min(df_join$percentual_laboratorio)
-max = max(df_join$percentual_laboratorio)
+min = min(df_join_lab$percentual_laboratorio)
+max = max(df_join_lab$percentual_laboratorio)
 
 k = (max - min)/w
 
 k
 ```
 
-15 classes são recomendadas pelo cálculo do método, entretanto, por motivos de visualização e produção de um relatório de linguagem simples, optou-se por 5 categorias.
+15 classes são recomendadas pelo cálculo do método, entretanto, por motivos de visualização e produção de um relatório em linguagem simples, optou-se por 5 categorias.
 
 Visualização do mapa
 
@@ -268,17 +277,17 @@ bins <- 5 # Natural Breaks (Intervalos iguais)
 pal <- colorRampPalette(brewer.pal(9, "YlOrRd"))(15)
 pal_fun <- colorBin(
   palette = pal,
-  domain = df_join$percentual_laboratorio,
+  domain = df_join_lab$percentual_laboratorio,
   bins = 5,
   na.color = "transparent"
 )
 
 labels <- sprintf(
   "<strong>%s</strong><br/>%.1f%%",
-  df_join$municipio, df_join$percentual_laboratorio*100
+  df_join_lab$municipio, df_join_lab$percentual_laboratorio*100
 ) %>% lapply(htmltools::HTML)
 
-m <- leaflet(df_join) %>%
+m <- leaflet(df_join_lab) %>%
   setView(lng = -39.5, lat = -5.2, zoom = 6) %>%
   addProviderTiles(providers$CartoDB.Positron) %>% 
   addPolygons(
@@ -307,7 +316,7 @@ m
 Municípios com **menor percentual** de escolas com laboratórios
 
 ```{r}
-df_order <- df_join %>% arrange(percentual_laboratorio)
+df_order <- df_join_lab %>% arrange(percentual_laboratorio)
 head(select(as.data.frame(df_order),
                  municipio,
                  percentual_laboratorio,
@@ -318,7 +327,7 @@ head(select(as.data.frame(df_order),
 Avaliação da **disparidade** entre os municípios
 
 ```{r}
-ggplot(data=df_join) +
+ggplot(data=df_join_lab) +
   geom_histogram(mapping = aes(x = percentual_laboratorio), 
                  bins = 15, 
                  binwidth = 0.063158,
@@ -347,11 +356,27 @@ ggplot(data=df_join) +
 #### 4.4. Qual o panorama da disposição de internet nas escolas do Ceará?
 
 ```{r}
-df_contagem_internet <- df_filtered %>% 
+df_contagem_internet <- df %>% 
   count(escolar_in_internet, name='contagem', sort=TRUE) %>% 
   mutate(percentual = contagem/sum(contagem))
 
 df_contagem_internet
+```
+
+```{r}
+df_contagem_internet$escolar_in_internet <- ifelse(df_contagem_internet$escolar_in_internet == 1,
+                         "Com internet",
+                         "Sem internet")
+```
+
+```{r}
+df_contagem_internet %>% 
+  e_charts(escolar_in_internet) %>%  
+  e_bar(contagem, name = "") %>% 
+  e_labels(show = TRUE) %>% 
+  e_title(text='Gráfico 03: Quantidade de Escolas Cearenses com Acesso à Internet',
+          textStyle = list(color = "black", fontSize = 14)) %>% 
+  e_theme('macarons')
 ```
 
 Quase a **totalidade** das escolas no Ceará possuem conexão com internet (98,5%). Um panorama sobre os municípios é apresentado abaixo.
