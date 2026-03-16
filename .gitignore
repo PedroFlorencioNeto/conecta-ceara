@@ -1,2 +1,4 @@
 .Rhistory
 .notebook_eda.nb.html
+.RData
+rsconnect

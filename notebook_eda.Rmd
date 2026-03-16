@@ -28,14 +28,14 @@ Este documento apresenta uma análise exploratória de dados e discussões acerc
 
 ### 1. Bibliotecas
 
-```{r message=FALSE, warning=FALSE, include=FALSE}
-install.packages("readxl")
-install.packages("leaflet")
-install.packages("echarts4r")
-install.packages("BAMMtools")
+```{r}
+# install.packages("readxl")
+# install.packages("leaflet")
+# install.packages("echarts4r")
+# install.packages("BAMMtools")
 ```
 
-```{r include=FALSE}
+```{r}
 library(sf)
 library(dplyr)
 library(readxl)
@@ -167,17 +167,19 @@ cols_join <- c('escolar_no_entidade',
                'escolar_in_internet_aprendizagem') 
 
 df_filtered <- df %>% select(all_of(cols_join)) 
+
+knitr::kable(head(df_filtered))
 ```
 
 ```{r}
 # substituindo coluna por variavel booleana
-df_filtered <- df_filtered %>%
+df_filtered_lab <- df_filtered %>%
   mutate(escolar_in_laboratorio_informatica = ifelse(escolar_in_laboratorio_informatica == "Sim", 1, 0))
 ```
 
 ```{r}
 # agrupando por municipio e somando a quantidade de laboratorios de informatica
-df_filtered <- df_filtered %>%
+df_filtered_lab <- df_filtered_lab %>%
   group_by(escolar_co_municipio) %>%
   summarise(
     quantidade_escolas_laboratorios = sum(escolar_in_laboratorio_informatica),
@@ -187,28 +189,20 @@ df_filtered <- df_filtered %>%
 Adicionando coluna com os valores relativos de escolas que contêm laboratórios de informática
 
 ```{r}
-df_filtered <- mutate(df_filtered,
+df_filtered_lab <- mutate(df_filtered_lab,
                       percentual_laboratorio = quantidade_escolas_laboratorios / quantidade_escolas)
-
-View(df_filtered)
 ```
 
 Adicionando a coluna *geometry* no dataframe *df_filtered*
 
 ```{r}
 # padronizando tipo dos IDs dos municipios
-df_filtered$escolar_co_municipio <- as.character(df_filtered$escolar_co_municipio)
+df_filtered_lab$escolar_co_municipio <- as.character(df_filtered_lab$escolar_co_municipio)
 
 df_join <- gdf_ceara %>% 
-  left_join(df_filtered, by = c("codigo_ibge"="escolar_co_municipio"))
+  left_join(df_filtered_lab, by = c("codigo_ibge"="escolar_co_municipio"))
 
 dim(df_join)
-```
-
-Agrupando indicadores por município
-
-```{r}
-View(df_join)
 ```
 
 **Mapa Coroplético do Percentual de Laboratórios nas Cearenses**
@@ -264,14 +258,7 @@ k = (max - min)/w
 k
 ```
 
-15 classes serão adotadas.
-
-Aplicando o algoritmo de *Jenks-Caspall*, temos:
-
-```{r}
-categories <- getJenksBreaks(df_join$percentual_laboratorio, 15)
-categories
-```
+15 classes são recomendadas pelo cálculo do método, entretanto, por motivos de visualização e produção de um relatório de linguagem simples, optou-se por 5 categorias.
 
 Visualização do mapa
 
@@ -357,6 +344,38 @@ ggplot(data=df_join) +
   )
 ```
 
+#### 4.4. Qual o panorama da disposição de internet nas escolas do Ceará?
+
 ```{r}
-summary(df_join$percentual_laboratorio)
+df_contagem_internet <- df_filtered %>% 
+  count(escolar_in_internet, name='contagem', sort=TRUE) %>% 
+  mutate(percentual = contagem/sum(contagem))
+
+df_contagem_internet
+```
+
+Quase a **totalidade** das escolas no Ceará possuem conexão com internet (98,5%). Um panorama sobre os municípios é apresentado abaixo.
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
 ```
