@@ -46,7 +46,12 @@ Os dados foram baixados do [Diagnóstico da Conectividade na Educação](https:/
 ```{r}
 df <- read_excel('data/processed-data/base_ceara_validada.xlsx')
 df <- df[!is.na(df$escolar_co_municipio), ]
+
 head(df)
+```
+
+```{r}
+gdf_ceara <- st_read('data/processed-data/limites_ceara.geojson')
 ```
 
 ### 3. Pré-Processamento dos Dados
@@ -76,9 +81,23 @@ df <- df[, !(names(df) %in% cols_to_remove)]
 knitr::kable(data.frame('Faltantes' = colSums(is.na(df))))
 ```
 
-Não existem campos ausentes nas variáveis desse estudo, portanto não foi necessária a adoção de nenhuma técnica de substituição de dados faltantes.
+```{r}
+df %>% 
+  count(escolar_tipo_tecnologia, name='contagem', sort=TRUE)
+```
+
+Para a variável `escolar_tipo_tecnologia` optou-se por preencher NA com o termo `sem informação`, conforme `string` contida nesta coluna.
+
+```{r}
+
+df$escolar_tipo_tecnologia <- df$escolar_tipo_tecnologia %>% replace_na('sem informação')
+```
 
 #### 3.3. Substituição de tipos de variáveis
+
+```{r}
+df$escolar_co_municipio <- as.character(df$escolar_co_municipio)
+```
 
 ```{r}
 # verificando se as colunas booleanas possuem mais formas de escrita de 'Sim'e 'Nao'
@@ -180,12 +199,6 @@ Há uma predominância de escolas em zona urbana, embora, a quantidade de instit
 
 #### 4.3. Qual o panorama das escolas que tem laboratórios de informática no Ceará?
 
-Adicionando dataframe com os limites do Estado do Ceará
-
-```{r}
-gdf_ceara <- st_read('data/processed-data/limites_ceara.geojson')
-```
-
 ```{r}
 # agrupando por municipio e somando a quantidade de laboratorios de informatica
 df_filtered_lab <- df %>%
@@ -205,9 +218,6 @@ df_filtered_lab <- mutate(df_filtered_lab,
 Adicionando a coluna *geometry* no dataframe *df_filtered*
 
 ```{r}
-# padronizando tipo dos IDs dos municipios
-df_filtered_lab$escolar_co_municipio <- as.character(df_filtered_lab$escolar_co_municipio)
-
 df_join_lab <- gdf_ceara %>% 
   left_join(df_filtered_lab, by = c("codigo_ibge"="escolar_co_municipio"))
 
@@ -382,24 +392,113 @@ df_contagem_internet %>%
 Quase a **totalidade** das escolas no Ceará possuem conexão com internet (98,5%). Um panorama sobre os municípios é apresentado abaixo.
 
 ```{r}
+df_internet <- df %>% 
+  group_by(escolar_co_municipio) %>% 
+  summarise(quantidade_escolas=n(),
+            quantidade_escolas_internet=sum(escolar_in_internet),
+            percentual = quantidade_escolas_internet/quantidade_escolas)
 
+head(df_internet)
 ```
 
 ```{r}
+df_join_net <- gdf_ceara %>% 
+  left_join(df_internet, by = c("codigo_ibge"="escolar_co_municipio"))
 
+dim(df_join_lab)
 ```
 
 ```{r}
+bins <- 5 # Natural Breaks (Intervalos iguais)
+pal_fun <- colorBin(
+  palette = "YlOrRd",
+  domain = df_join_net$percentual,
+  bins = 5,
+  na.color = "transparent"
+)
 
+labels <- sprintf(
+  "<strong>%s</strong><br/>%.1f%%",
+  df_join_net$municipio, df_join_net$percentual*100
+) %>% lapply(htmltools::HTML)
+
+m <- leaflet(df_join_net) %>%
+  setView(lng = -39.5, lat = -5.2, zoom = 6) %>%
+  addProviderTiles(providers$CartoDB.Positron) %>% 
+  addPolygons(
+  fillColor = ~pal_fun(percentual),
+  weight = 2,
+  opacity = 1,
+  color = "white",
+  dashArray = "3",
+  fillOpacity = 0.7,
+   highlightOptions = highlightOptions(
+    weight = 5,
+    color = "#666",
+    dashArray = "",
+    fillOpacity = 0.7,
+    bringToFront = TRUE),
+  label = labels,
+  labelOptions = labelOptions(
+    style = list("font-weight" = "normal", padding = "3px 8px"),
+    textsize = "15px",
+    direction = "auto")) %>% 
+  addLegend(pal = pal_fun, values = ~percentual, opacity = 0.7, title = "Percentuais", position = "bottomright")
+
+m
+```
+
+#### 4.5. Quais os tipos de rede de internet nas escolas do Ceará?
+
+```{r}
+df_contagem_rede <- df %>% 
+  count(escolar_tp_rede_local, name='contagem', sort=TRUE) %>% 
+  mutate(percentual = contagem/sum(contagem))
+
+df_contagem_rede
+```
+
+Mais de 60% das escolas do Estado possui rede wifi.
+
+```{r}
+df_contagem_rede %>% 
+  e_charts(escolar_tp_rede_local) %>%  
+  e_bar(contagem, name = "") %>% 
+  e_labels(show = TRUE) %>% 
+  e_title(text='Gráfico 04: Quantidade de Escolas Cearenses com Acesso à Internet por Tipo de Rede',
+          textStyle = list(color = "black", fontSize = 14)) %>%
+  e_x_axis(
+    axisLabel = list(
+      interval = 0,
+      rotate = 45)) %>% 
+  e_theme('macarons')
+```
+
+#### 4.6. Quais os tipos de tecnologia de conexão à internet nas escolas do Ceará?
+
+```{r}
+df_contagem_tecnologia <- df %>% 
+  count(escolar_tipo_tecnologia, name='contagem', sort=TRUE) %>% 
+  mutate(percentual = contagem/sum(contagem))
+
+df_contagem_tecnologia
 ```
 
 ```{r}
-
+df_contagem_tecnologia %>% 
+  e_charts(escolar_tipo_tecnologia) %>%  
+  e_bar(contagem, name = "") %>% 
+  e_labels(show = TRUE) %>% 
+  e_title(text='Gráfico 05: Quantidade de Escolas Cearenses com Acesso à Internet por Tipo de Tecnologia de Rede',
+          textStyle = list(color = "black", fontSize = 14)) %>%
+  e_x_axis(
+    axisLabel = list(
+      interval = 0,
+      rotate = 45)) %>% 
+  e_theme('macarons')
 ```
 
-```{r}
-
-```
+#### 4.7. Qual a quantidade de estudantes que tem acesso a internet nas escolas?
 
 ```{r}
 
