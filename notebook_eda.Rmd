@@ -27,7 +27,7 @@ Este documento apresenta uma análise exploratória de dados e discussões acerc
 # install.packages("BAMMtools")
 ```
 
-```{r}
+```{r warning=FALSE}
 library(sf)
 library(dplyr)
 library(readxl)
@@ -188,7 +188,7 @@ df_freq_loc
 ```{r}
 df_freq_loc %>% 
   e_charts(TP_LOCALIZACAO) %>%  
-  e_bar(QUANTIDADE, name = "Área da instituição") %>% 
+  e_bar(QUANTIDADE, name = "") %>% 
   e_labels(show = TRUE) %>% 
   e_title(text='Gráfico 02: Localização das Escolas Cearenses',
           textStyle = list(color = "black", fontSize = 14)) %>% 
@@ -501,5 +501,108 @@ df_contagem_tecnologia %>%
 #### 4.7. Qual a quantidade de estudantes que tem acesso a internet nas escolas?
 
 ```{r}
+df_contagem_internet_alunos <- df %>% 
+  count(escolar_in_internet_alunos, name='contagem', sort=TRUE) %>% 
+  mutate(percentual = contagem/sum(contagem))
 
+df_contagem_internet_alunos
+```
+
+```{r}
+df_contagem_internet_alunos$escolar_in_internet_alunos <- ifelse(df_contagem_internet_alunos$escolar_in_internet_alunos == 1,
+                         "Disponível",
+                         "Indisponível")
+```
+
+```{r}
+df_contagem_internet_alunos %>% 
+  e_charts(escolar_in_internet_alunos) %>%  
+  e_bar(contagem, name = "") %>% 
+  e_labels(show = TRUE) %>% 
+  e_title(text='Gráfico 06: Disponibilidade de Internet para Estudantes nas Escolas Cearenses', textStyle = list(color = "black", fontSize = 14)) %>%
+  e_theme('macarons')
+```
+
+#### 4.8. As escolas cearenses possuem conexão com internet para uso pedagógico?
+
+```{r}
+df_contagem_internet_pedagogico <- df %>% 
+  count(escolar_in_internet_aprendizagem, name='contagem', sort=TRUE) %>% 
+  mutate(percentual = contagem/sum(contagem))
+
+df_contagem_internet_pedagogico
+```
+
+```{r}
+df_contagem_internet_pedagogico$escolar_in_internet_aprendizagem <- ifelse(df_contagem_internet_pedagogico$escolar_in_internet_aprendizagem == 1,
+                         "Disponível",
+                         "Indisponível")
+```
+
+```{r}
+df_contagem_internet_pedagogico %>% 
+  e_charts(escolar_in_internet_aprendizagem) %>%  
+  e_bar(contagem, name = "") %>% 
+  e_labels(show = TRUE) %>% 
+  e_title(text='Gráfico 07: Disponibilidade de Internet para Uso Pedagógico Estudantes nas Escolas Cearenses', textStyle = list(color = "black", fontSize = 14)) %>%
+  e_theme('macarons')
+```
+
+### **5. Estatística Descritiva**
+
+#### 5.1. Quantidade de Matrículas nas Escolas
+
+```{r}
+summary(df$escolar_qtematriculas)
+```
+
+```{r}
+print(paste("Variância: ", var(df$escolar_qtematriculas)))
+print(paste("Desvio Padrão: ", sd(df$escolar_qtematriculas)))
+```
+
+#### 5.2. Número de Turmas nas Escolas
+
+```{r}
+summary(df$escolar_num_turmas)
+```
+
+```{r}
+print(paste("Variância: ", var(df$escolar_num_turmas, na.rm = TRUE)))
+print(paste("Desvio Padrão: ", sd(df$escolar_num_turmas, na.rm = TRUE)))
+```
+
+#### 5.3. Número de Desktops por Aluno
+
+```{r}
+summary(df$escolar_qt_desktop_aluno)
+```
+
+Observa-se um valor discrepante na quantidade de computadores *desktops* por aluno, o que indica uma inconsistência presente nessa variável.
+
+```{r}
+print(paste("Variância: ", var(df$escolar_qt_desktop_aluno)))
+print(paste("Desvio Padrão: ", sd(df$escolar_qt_desktop_aluno)))
+```
+
+#### 5.4. Número de Computadores Portáteis (Laptops) por Aluno
+
+```{r}
+summary(df$escolar_qt_comp_portatil_aluno)
+```
+
+```{r}
+print(paste("Variância: ", var(df$escolar_qt_comp_portatil_aluno)))
+print(paste("Desvio Padrão: ", sd(df$escolar_qt_comp_portatil_aluno)))
+```
+
+#### 5.5. Número de Tablets por Aluno
+
+```{r}
+summary(df$escolar_qt_tablet_aluno)
+```
+
+```{r}
+print(paste("Variância: ", var(df$escolar_qt_tablet_aluno)))
+print(paste("Desvio Padrão: ", sd(df$escolar_qt_tablet_aluno)))
 ```
