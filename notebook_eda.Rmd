@@ -27,7 +27,7 @@ Este documento apresenta uma análise exploratória de dados e discussões acerc
 # install.packages("BAMMtools")
 ```
 
-```{r warning=FALSE}
+```{r message=FALSE, warning=FALSE}
 library(sf)
 library(dplyr)
 library(readxl)
@@ -118,6 +118,28 @@ df <- df %>%
   mutate(across(all_of(cols_booleanas),
                 ~ifelse(. == "Sim", 1, 0)))
 ```
+
+#### 3.4. Remoção de valores discrepantes
+
+Durante a avaliação das medidas de localização e de dispersão, observaram-se valores discrepantes de quantidade de computadores disponíveis para os alunos, cuja grandeza evidenciou uma inconsistência nos dados.
+
+```{r}
+select(filter(df, escolar_qt_desktop_aluno > 5000),
+       escolar_no_entidade,
+       escolar_qt_desktop_aluno,
+       escolar_qtematriculas)
+```
+
+O número de alunos matriculados no IFCE - Campus Ubajara diverge de forma relevante da quantidade de computadores do tipo *desktop.*
+
+```{r}
+select(filter(df, escolar_qt_comp_portatil_aluno > 5000),
+       escolar_no_entidade,
+       escolar_qt_comp_portatil_aluno,
+       escolar_qtematriculas)
+```
+
+Do mesmo modo, o Instituto Cearense de Educação de Surdos apresentou o valor 88.888 para a quantidade de *notebooks.* Tais instituições serão desconsideradas durante a análise da estatística descritiva nas variáveis referidas.
 
 ### 4. Análise Exploratória dos Dados
 
@@ -573,6 +595,12 @@ print(paste("Desvio Padrão: ", sd(df$escolar_num_turmas, na.rm = TRUE)))
 ```
 
 #### 5.3. Número de Desktops por Aluno
+
+```{r}
+# remocao de valores inconsistentes conforme explicado no topico 3.4.
+df <- df[(df$escolar_qt_desktop_aluno < 88888) & 
+         (df$escolar_qt_comp_portatil_aluno < 88888), ]
+```
 
 ```{r}
 summary(df$escolar_qt_desktop_aluno)
