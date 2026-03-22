@@ -3,3 +3,5 @@
 .RData
 rsconnect
 .RDataTmp
+renv
+.Rprofile

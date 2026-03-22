@@ -22,6 +22,7 @@ Este documento apresenta uma análise exploratória de dados e discussões acerc
 
 ```{r}
 # install.packages("readxl")
+# install.packages("writexl")
 # install.packages("leaflet")
 # install.packages("echarts4r")
 # install.packages("BAMMtools")
@@ -175,7 +176,7 @@ df_freq %>%
   ) %>%
   e_legend(right = "25%") %>%
   e_title(
-    text = "Gráfico 01: Dependência Administrativa das Escolas Públicas do Ceará",
+    text = "",
     textStyle = list(
       color = "black",
       fontSize = 14
